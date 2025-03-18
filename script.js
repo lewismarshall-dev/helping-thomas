@@ -27,7 +27,7 @@ document.addEventListener('mousemove', (event) => {
   const current = { x: event.clientX, y: event.clientY };
 
   // If the cursor has moved more than 50 pixels
-  if (calcPositionDistance(last, current) > 50) {
+  if (calcPositionDistance(last, current) > 100) {
     // Add image from list to the DOM
     const img = imageList[index].cloneNode();
     document.body.appendChild(img);
