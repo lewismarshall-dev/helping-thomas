@@ -3,7 +3,10 @@
 let last = { x: 0, y: 0 };
 let imageList = [];
 let index = 0;
-let transition = 0.75;
+
+let fadeOutDelay = 1000;
+let transitionDuration = 750;
+document.documentElement.style.setProperty('--transition-duration', `${transitionDuration}ms`);
 
 // Fetch placeholder images
 fetch('https://picsum.photos/v2/list?limit=100')
@@ -33,19 +36,21 @@ document.addEventListener('mousemove', (event) => {
       // Set image center position to cursor, set image visible
       img.style.left = current.x - img.width / 2 + 'px';
       img.style.top = current.y - img.height / 2 + 'px';
-      img.style.visibility = 'visible';
 
-      // Transition in: scale from 0.5 to 1
-      gsap.from(img, { scale: 0.5, duration: transition });
-
-      // Transition out after 1 second: scale to 0.5, fade out, remove from DOM
-      gsap.to(img, {
-        autoAlpha: 0,
-        scale: 0.5,
-        duration: transition,
-        delay: 1,
-        onComplete: () => img.remove(),
+      // Transition in: scale from 0.5 (set in css) to 1
+      requestAnimationFrame(() => {
+        img.style.visibility = 'visible';
+        img.style.transform = 'scale(1)';
       });
+
+      // Transition out after delay: scale to 0.5, fade out
+      setTimeout(() => {
+        img.style.transform = 'scale(0.5)';
+        img.style.opacity = 0;
+      }, fadeOutDelay);
+
+      // Remove image from DOM after transition
+      setTimeout(() => img.remove(), fadeOutDelay + transitionDuration);
 
       // Set last cursor position to current
       last = current;

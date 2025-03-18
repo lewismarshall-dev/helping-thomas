@@ -1,3 +1,11 @@
+/* 
+--transition-duration set in JS 
+*/
+
+body {
+  overflow: hidden;
+}
+
 h1 {
   position: fixed;
   top: 50%;
@@ -11,6 +19,9 @@ h1 {
   position: absolute;
   max-width: 300px;
   visibility: hidden; /* image hiden by default */
-  scale: 1;
+  transform: scale(0.5); /* image scaled down by default */
   z-index: 1;
+
+  /* CSS transition for transform and opacity properties. (opacity only set for fade-out) */
+  transition: transform var(--transition-duration) ease, opacity var(--transition-duration) ease;
 }
