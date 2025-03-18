@@ -19,7 +19,7 @@ h1 {
   position: absolute;
   max-width: 300px;
   visibility: hidden; /* image hiden by default */
-  will-change: transform;
+  will-change: transform, opacity, visibility;
   transform: translateZ(0) scale(0.5); /* image scaled down by default */
   z-index: 1;
 
