@@ -1,63 +1,78 @@
 'use strict';
-let last = { x: 0, y: 0 };
-let imageList = [];
-let index = 0;
 
-// Fetch placeholder images
-fetch('https://picsum.photos/v2/list?limit=100')
-  .then((response) => response.json())
-  .then((images) => {
-    images.forEach((image) => {
+let last = { x: 0, y: 0 }; // initial cursor position
+let imageList = []; // list to store loaded images
+let index = 0; // index to track which image to animate in/out next
+
+// Preload iamges to browser cache to avoid initial lagging
+async function preloadImages(images) {
+  // Creates <image> elements for each fetched image, each promise resolves once image loaded.
+  const promises = images.map((image) => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
       img.src = image.download_url;
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err);
+    });
+  });
+  return Promise.all(promises);
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  let fadeOutDelay = 1000; // delay before fading out image: 1 second
+  let transitionDuration = 750; // duration of image animation: 0.75 seconds
+  document.documentElement.style.setProperty('--transition-duration', `${transitionDuration}ms`);
+
+  try {
+    // Fetch images from API
+    const response = await fetch('https://picsum.photos/v2/list?limit=100');
+    const images = await response.json();
+    // Preloads images to browser cache
+    const loadedImages = await preloadImages(images);
+
+    // Once all images are loaded, store them for use in mouse movement animation
+    loadedImages.forEach((img) => {
       img.className = 'img';
       imageList.push(img);
     });
-  })
-  .catch((error) => console.error('Error:', error));
+  } catch (error) {
+    console.error('Error:', error);
+  }
 
-document.addEventListener('DOMContentLoaded', () => {
-  let fadeOutDelay = 1000;
-  let transitionDuration = 750;
-  document.documentElement.style.setProperty('--transition-duration', `${transitionDuration}ms`);
+  // Hide loading screen
+  document.getElementById('loading').style.display = 'none';
 
   // Observe mouse movement
   document.addEventListener('mousemove', (event) => {
-    // Set current cursor position
     const current = { x: event.clientX, y: event.clientY };
 
-    // If the cursor has moved more than 50 pixels
-    if (calcPositionDistance(last, current) > 100) {
-      // Add image from list to the DOM
+    // if mouse has moved more than 100px and images are loaded
+    if (calcPositionDistance(last, current) > 100 && imageList.length) {
       const img = imageList[index].cloneNode();
       document.body.appendChild(img);
 
-      img.onload = () => {
-        // Set image center position to cursor, set image visible
-        img.style.left = current.x - img.width / 2 + 'px';
-        img.style.top = current.y - img.height / 2 + 'px';
+      // Position center of image at mouse cursor
+      img.style.left = current.x - img.width / 2 + 'px';
+      img.style.top = current.y - img.height / 2 + 'px';
 
-        // Transition in: scale from 0.5 (set in css) to 1
-        requestAnimationFrame(() => {
-          img.style.visibility = 'visible';
-          img.style.transform = 'scale(1)';
-        });
+      // Animate out: make images visible, scale up image
+      requestAnimationFrame(() => {
+        img.style.visibility = 'visible';
+        img.style.transform = 'scale(1)';
+      });
 
-        // Transition out after delay: scale to 0.5, fade out
-        setTimeout(() => {
-          img.style.transform = 'scale(0.5)';
-          img.style.opacity = 0;
-        }, fadeOutDelay);
+      // Animate out: after delay, scale down image and fade out
+      setTimeout(() => {
+        img.style.transform = 'scale(0.5)';
+        img.style.opacity = 0;
+      }, fadeOutDelay);
 
-        // Remove image from DOM after transition
-        setTimeout(() => img.remove(), fadeOutDelay + transitionDuration);
+      // Remove image from DOM after fade out
+      setTimeout(() => img.remove(), fadeOutDelay + transitionDuration);
 
-        // Set last cursor position to current
-        last = current;
-
-        // Set next image index
-        index = (index + 1) % imageList.length;
-      };
+      // Update cursor's last position and set index for next image to animate in/out
+      last = current;
+      index = (index + 1) % imageList.length;
     }
   });
 });
