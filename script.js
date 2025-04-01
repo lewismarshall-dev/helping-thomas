@@ -54,13 +54,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   loading.style.display = 'none';
 
   if (isTouchscreen) {
-    // call insertImage at a random position on the screen
+    let heroWidth = hero.clientWidth;
+    let heroHeight = hero.clientHeight;
+
     let lastCalled = 0;
     const animate = (timestamp) => {
       if (timestamp - lastCalled >= MOBILE_FREQ) {
+        // call insertImage at a random position on the screen
         const randomPosition = {
-          x: Math.random() * hero.clientWidth,
-          y: Math.random() * hero.clientHeight,
+          x: Math.random() * heroWidth,
+          y: Math.random() * heroHeight,
         };
         insertImage(hero, randomPosition, FADEOUT_DELAY, TRANSITION_DURATION);
         lastCalled = timestamp;
