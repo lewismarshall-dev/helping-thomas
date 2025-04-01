@@ -1,8 +1,9 @@
 'use strict';
 
-const FADEOUT_DELAY = 1000; // delay before fading out image: 1 second
-const TRANSITION_DURATION = 750; // duration of image animation: 0.75 seconds
-const MOBILE_FREQ = 125; // frequency of image insertion on mobile devices: 0.125 seconds
+const FADEOUT_DELAY = 1000; // delay before fading out image - milliseconds
+const TRANSITION_DURATION = 750; // duration of stamp animation - milliseconds
+const MIN_CURSOR_TRAVEL = 100; // minimum distance cursor must travel to trigger stamp - pixels
+const MOBILE_FREQ = 125; // frequency of stamp insertion on mobile devices - milliseconds
 
 const STAMP_DIR = 'assets/stamps/'; // directory where stamp images are stored
 const STAMP_FILENAMES = [
@@ -26,7 +27,7 @@ const STAMP_FILENAMES = [
 
 let last = { x: 0, y: 0 }; // initial cursor position
 let imageList = []; // list to store loaded images
-let index = 0; // index to track which image to animate in/out next
+let index = 0; // index to track which stamp to animate in/out next
 
 const isTouchscreen =
   'ontouchstart' in window || // Check for touch event
@@ -54,31 +55,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   loading.style.display = 'none';
 
   if (isTouchscreen) {
+    // Randomly insert stamp in hero section periodically
     let heroWidth = hero.clientWidth;
     let heroHeight = hero.clientHeight;
-
     let lastCalled = 0;
-    const animate = (timestamp) => {
+    const animateRandomStampInsert = (timestamp) => {
       if (timestamp - lastCalled >= MOBILE_FREQ) {
-        // call insertImage at a random position on the screen
+        // call insertStamp at a random position on the screen
         const randomPosition = {
           x: Math.random() * heroWidth,
           y: Math.random() * heroHeight,
         };
-        insertImage(hero, randomPosition, FADEOUT_DELAY, TRANSITION_DURATION);
+        console.log(randomPosition);
+        insertStamp(hero, randomPosition, FADEOUT_DELAY, TRANSITION_DURATION);
         lastCalled = timestamp;
       }
-      requestAnimationFrame(animate);
+      requestAnimationFrame(animateRandomStampInsert);
     };
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animateRandomStampInsert);
+
+    // Observe touch event
+    hero.addEventListener('touchstart', (event) => {
+      // Insert stamp at touch position
+      const touch = event.touches[0];
+      const current = { x: touch.clientX, y: touch.clientY };
+      insertStamp(hero, current, FADEOUT_DELAY, TRANSITION_DURATION);
+    });
   } else {
     // Observe mouse movement
     hero.addEventListener('mousemove', (event) => {
       const current = { x: event.clientX, y: event.clientY };
 
       // if mouse has moved more than 100px and images are loaded
-      if (calcPositionDistance(last, current) > 100 && imageList.length) {
-        insertImage(hero, current, FADEOUT_DELAY, TRANSITION_DURATION);
+      if (calcPositionDistance(last, current) > MIN_CURSOR_TRAVEL) {
+        insertStamp(hero, current, FADEOUT_DELAY, TRANSITION_DURATION);
       }
     });
   }
@@ -101,11 +111,11 @@ function calcPositionDistance(last, current) {
   return Math.sqrt(Math.pow(current.x - last.x, 2) + Math.pow(current.y - last.y, 2));
 }
 
-function insertImage(parentElement, position, FADEOUT_DELAY, TRANSITION_DURATION) {
+function insertStamp(parentElement, position, FADEOUT_DELAY, TRANSITION_DURATION) {
   const img = imageList[index].cloneNode();
   parentElement.appendChild(img);
 
-  // Position center of image at mouse cursor
+  // Position center of stamp at mouse cursor
   img.style.left = position.x - img.width / 2 + 'px';
   img.style.top = position.y - img.height / 2 + 'px';
 
@@ -115,7 +125,7 @@ function insertImage(parentElement, position, FADEOUT_DELAY, TRANSITION_DURATION
     img.style.transform = 'scale(1)';
   });
 
-  // Animate out: after delay, scale down image and fade out
+  // Animate out: after delay, scale down stamp and fade out
   setTimeout(
     () =>
       requestAnimationFrame(() => {
@@ -125,9 +135,9 @@ function insertImage(parentElement, position, FADEOUT_DELAY, TRANSITION_DURATION
     FADEOUT_DELAY
   );
 
-  // Remove image from DOM after fade out
+  // Remove stamp from DOM after fade out
   setTimeout(() => img.remove(), FADEOUT_DELAY + TRANSITION_DURATION);
-  // Update cursor's last position and set index for next image to animate in/out
+  // Update cursor's last position and set index for next stamp to animate in/out
   last = { x: position.x, y: position.y };
 
   // Randomly select a new index for the next image
