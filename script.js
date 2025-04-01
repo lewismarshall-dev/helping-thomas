@@ -1,5 +1,9 @@
 'use strict';
 
+const FADEOUT_DELAY = 1000; // delay before fading out image: 1 second
+const TRANSITION_DURATION = 750; // duration of image animation: 0.75 seconds
+const MOBILE_FREQ = 125; // frequency of image insertion on mobile devices: 0.125 seconds
+
 const STAMP_DIR = 'assets/stamps/'; // directory where stamp images are stored
 const STAMP_FILENAMES = [
   'Stamp_1_Blue.svg',
@@ -30,9 +34,7 @@ const isTouchscreen =
   window.matchMedia('(pointer: coarse)').matches; // Check for coarse pointer (touchscreen)
 
 document.addEventListener('DOMContentLoaded', async () => {
-  let fadeOutDelay = 1000; // delay before fading out image: 1 second
-  let transitionDuration = 750; // duration of image animation: 0.75 seconds
-  document.documentElement.style.setProperty('--transition-duration', `${transitionDuration}ms`);
+  document.documentElement.style.setProperty('--transition-duration', `${TRANSITION_DURATION}ms`);
 
   const loading = document.getElementById('loading');
   const hero = document.getElementById('hero');
@@ -42,7 +44,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loadedImages = await preloadLocalImages();
     loadedImages.forEach((img) => {
       img.className = 'stamp';
-      console.log(img.src);
       imageList.push(img);
     });
   } catch (error) {
@@ -52,14 +53,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Hide loading screen
   loading.style.display = 'none';
 
-  if (!isTouchscreen) {
+  if (isTouchscreen) {
+    // call insertImage at a random position on the screen
+    let lastCalled = 0;
+    const animate = (timestamp) => {
+      if (timestamp - lastCalled >= MOBILE_FREQ) {
+        const randomPosition = {
+          x: Math.random() * hero.clientWidth,
+          y: Math.random() * hero.clientHeight,
+        };
+        insertImage(hero, randomPosition, FADEOUT_DELAY, TRANSITION_DURATION);
+        lastCalled = timestamp;
+      }
+      requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  } else {
     // Observe mouse movement
     hero.addEventListener('mousemove', (event) => {
       const current = { x: event.clientX, y: event.clientY };
 
       // if mouse has moved more than 100px and images are loaded
       if (calcPositionDistance(last, current) > 100 && imageList.length) {
-        insertImage(hero, current, fadeOutDelay, transitionDuration);
+        insertImage(hero, current, FADEOUT_DELAY, TRANSITION_DURATION);
       }
     });
   }
@@ -82,31 +98,35 @@ function calcPositionDistance(last, current) {
   return Math.sqrt(Math.pow(current.x - last.x, 2) + Math.pow(current.y - last.y, 2));
 }
 
-function insertImage(parentElement, current, fadeOutDelay, transitionDuration) {
+function insertImage(parentElement, position, FADEOUT_DELAY, TRANSITION_DURATION) {
   const img = imageList[index].cloneNode();
   parentElement.appendChild(img);
 
   // Position center of image at mouse cursor
-  img.style.left = current.x - img.width / 2 + 'px';
-  img.style.top = current.y - img.height / 2 + 'px';
+  img.style.left = position.x - img.width / 2 + 'px';
+  img.style.top = position.y - img.height / 2 + 'px';
 
   // Animate out: make images visible, scale up image
   requestAnimationFrame(() => {
     img.style.visibility = 'visible';
     img.style.transform = 'scale(1)';
-    console.log('image animated in at ', current);
   });
 
   // Animate out: after delay, scale down image and fade out
-  setTimeout(() => {
-    img.style.transform = 'scale(0.5)';
-    img.style.opacity = 0;
-  }, fadeOutDelay);
+  setTimeout(
+    () =>
+      requestAnimationFrame(() => {
+        img.style.transform = 'scale(0.5)';
+        img.style.opacity = 0;
+      }),
+    FADEOUT_DELAY
+  );
 
   // Remove image from DOM after fade out
-  setTimeout(() => img.remove(), fadeOutDelay + transitionDuration);
+  setTimeout(() => img.remove(), FADEOUT_DELAY + TRANSITION_DURATION);
   // Update cursor's last position and set index for next image to animate in/out
-  last = { x: current.x, y: current.y };
+  last = { x: position.x, y: position.y };
+
   // Randomly select a new index for the next image
   let newIndex;
   do {
